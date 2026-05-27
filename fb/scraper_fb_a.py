@@ -200,6 +200,96 @@ def parsear_seguidores_xhr(bloques):
 
     return followers, following, profile_pic
 
+def decode_fb_text(t):
+    """Decodifica unicode escapes de FB incluyendo emojis (surrogates)."""
+    try:
+        decoded = t.encode('utf-8').decode('unicode_escape', errors='surrogatepass')
+        return decoded.encode('utf-16', 'surrogatepass').decode('utf-16')
+    except:
+        try:
+            return t.encode('raw_unicode_escape').decode('unicode_escape', errors='replace')
+        except:
+            return t
+
+def parsear_bloque_en_stories(raw):
+    """
+    Parsea un bloque XHR de FB extrayendo Stories completas.
+    Cada Story tiene: wwwURL, creation_time, reaction_count, comments.total_count, message.text, author.
+    Retorna lista de dicts con los campos ya limpios.
+    """
+    stories = []
+    vistos  = set()
+
+    # Dividir en Stories por boundary "__typename":"Story"
+    partes = re.split(r'"__typename"\s*:\s*"Story"', raw)
+
+    for parte in partes[1:]:  # la primera parte es el prefijo sin story
+        # URL — viene en wwwURL con escapes \\/
+        url_match = re.search(r'"wwwURL"\s*:\s*"([^"]+)"', parte)
+        if not url_match:
+            continue
+        url = url_match.group(1).replace('\\/', '/')
+        # Normalizar: quitar query strings que no sean pfbid
+        url_limpia = re.sub(r'\?(?!pfbid)[^"]*', '', url).rstrip('/')
+        if url_limpia in vistos or len(url_limpia) < 25:
+            continue
+        vistos.add(url_limpia)
+
+        # Timestamp unix
+        fecha_dt  = None
+        fecha_iso = ""
+        t_match = re.search(r'"creation_time"\s*:\s*(\d{10})', parte)
+        if t_match:
+            try:
+                fecha_dt  = datetime.fromtimestamp(int(t_match.group(1)))
+                fecha_iso = fecha_dt.isoformat()
+            except:
+                pass
+
+        # Reacciones — estructura real: "reaction_count":{"count":N}
+        likes = ""
+        r_match = re.search(r'"reaction_count"\s*:\s*\{\s*"count"\s*:\s*(\d+)', parte)
+        if r_match:
+            likes = r_match.group(1)
+
+        # Comentarios — estructura real: "comments":{"total_count":N}
+        comments_count = ""
+        c_match = re.search(r'"comments"\s*:\s*\{\s*"total_count"\s*:\s*(\d+)', parte)
+        if c_match:
+            comments_count = c_match.group(1)
+
+        # Caption/message — estructura real: {"message":{"text":"..."}}  (doblemente anidado)
+        caption     = ""
+        caption_raw = ""
+        # Patrón exacto confirmado en datos reales
+        m_match = re.search(
+            r'"message"\s*:\s*\{[^}]*"text"\s*:\s*"((?:[^"\\]|\\.)*)"',
+            parte
+        )
+        if m_match:
+            caption_raw = m_match.group(1)
+            caption     = decode_fb_text(caption_raw)
+
+        # Autor — owning_profile.name
+        autor = ""
+        a_match = re.search(r'"owning_profile"\s*:\s*\{[^}]*"name"\s*:\s*"([^"]+)"', parte)
+        if a_match:
+            autor = decode_fb_text(a_match.group(1))
+
+        stories.append({
+            "url":         url_limpia,
+            "fecha_dt":    fecha_dt,
+            "fecha_iso":   fecha_iso,
+            "likes":       likes,
+            "comments":    comments_count,
+            "caption":     caption,
+            "caption_raw": caption_raw,
+            "autor":       autor,
+        })
+
+    return stories
+
+
 def parsear_posts_xhr(bloques, f_inicio_str, f_fin_str):
     """Extrae posts con url, fecha, likes, comentarios, caption de bloques XHR."""
     vistos = set()
@@ -217,73 +307,26 @@ def parsear_posts_xhr(bloques, f_inicio_str, f_fin_str):
             continue
         raw = limpiar_raw(raw)
 
-        # URLs de posts — múltiples patrones
-        urls = re.findall(
-            r'"(https://www\.facebook\.com/(?:[^"]+/posts/[A-Za-z0-9_\-]+|permalink\.php\?[^"]{5,100}|[^"]+\?pfbid=[^"]+))"',
-            raw
-        )
-        # También pfbid sueltos
-        pfbids = re.findall(r'"wwwURL"\s*:\s*"([^"]+)"', raw)
-        urls   = list(dict.fromkeys(urls + pfbids))  # dedup orden
-
-        timestamps   = re.findall(r'"creation_time"\s*:\s*(\d{10})', raw)
-        reacciones   = re.findall(r'"reaction_count"\s*:\s*\{[^}]*"count"\s*:\s*(\d+)', raw)
-        comentarios  = re.findall(r'"comment_count"\s*:\s*\{[^}]*"total_count"\s*:\s*(\d+)', raw)
-
-        # Textos — priorizamos "message":{"text":...}
-        textos = re.findall(r'"message"\s*:\s*\{[^}]*"text"\s*:\s*"([^"\\]{3,2000})"', raw)
-        if not textos:
-            textos = re.findall(r'"text"\s*:\s*"([^"\\]{10,2000})"', raw)
-
-        # Limpiar textos unicode
-        textos_limpios = []
-        for t in textos:
-            try:
-                t2 = t.encode('utf-8').decode('unicode_escape', errors='replace') if '\\u' in t else t
-            except:
-                t2 = t
-            if len(t2.strip()) > 5 and not any(x in t2 for x in ["Facebook", "messenger", "https://"]):
-                textos_limpios.append(t2.strip())
-
-        # Autor del post
-        autores = re.findall(r'"name"\s*:\s*"([^"]{3,60})"', raw)
-
-        for idx, url in enumerate(urls):
-            url_limpia = re.sub(r'\?(?!pfbid).*', '', url).replace('\\/', '/').rstrip('/')
-            if url_limpia in vistos or len(url_limpia) < 20:
+        for s in parsear_bloque_en_stories(raw):
+            if s["url"] in vistos:
                 continue
-            vistos.add(url_limpia)
-
-            # Timestamp
-            fecha_dt  = None
-            fecha_iso = ""
-            if idx < len(timestamps):
-                try:
-                    fecha_dt  = datetime.fromtimestamp(int(timestamps[idx]))
-                    fecha_iso = fecha_dt.isoformat()
-                except:
-                    pass
 
             # Filtro de rango
-            if dt_inicio and dt_fin and fecha_dt:
-                if not (dt_inicio <= fecha_dt <= dt_fin):
+            if dt_inicio and dt_fin and s["fecha_dt"]:
+                if not (dt_inicio <= s["fecha_dt"] <= dt_fin):
                     continue
 
-            caption     = textos_limpios[idx] if idx < len(textos_limpios) else (textos_limpios[0] if textos_limpios else "")
-            likes_text  = str(reacciones[idx])  if idx < len(reacciones)   else (str(reacciones[0])  if reacciones   else "")
-            comm_text   = str(comentarios[idx]) if idx < len(comentarios)  else (str(comentarios[0]) if comentarios  else "")
-            autor       = autores[0] if autores else ""
-
+            vistos.add(s["url"])
             posts.append({
-                "url":              url_limpia,
-                "fecha_post_iso":   fecha_iso,
-                "likes_text":       likes_text,
-                "comments_text":    comm_text,
-                "username_post":    autor,
-                "fecha_text":       fecha_iso[:10] if fecha_iso else "",
-                "caption":          caption,
-                "caption_raw":      textos[idx] if idx < len(textos) else "",
-                "comments":         [],
+                "url":            s["url"],
+                "fecha_post_iso": s["fecha_iso"],
+                "likes_text":     s["likes"],
+                "comments_text":  s["comments"],
+                "username_post":  s["autor"],
+                "fecha_text":     s["fecha_iso"][:10] if s["fecha_iso"] else "",
+                "caption":        s["caption"],
+                "caption_raw":    s["caption_raw"],
+                "comments":       [],
             })
 
     return posts
@@ -473,9 +516,6 @@ def procesar_perfil(driver, info):
     # ── Recolectar bloques XHR ──
     try:
         bloques_xhr = driver.execute_script("return window.__fb_xhr_data || [];") or []
-        with open(f"debug_xhr_{usuario}.json", "w", encoding="utf-8") as f:
-            json.dump(bloques_xhr, f, ensure_ascii=False, indent=2)
-            print(f"   🔍 DEBUG guardado: debug_xhr_{usuario}.json")
     except:
         bloques_xhr = []
     print(f"   🌐 Bloques XHR capturados: {len(bloques_xhr)}")
@@ -527,11 +567,6 @@ def procesar_perfil(driver, info):
     perfil_dom = extraer_perfil_dom(driver)
 
     print(f"   👤 {perfil_dom['nombre']} | Followers: {followers} | Posts: {len(posts)}")
-
-    if not posts:
-        with open(f"debug_html_{usuario}.html", "w", encoding="utf-8") as f:
-            f.write(driver.page_source)
-        print(f"   🔍 HTML guardado: debug_html_{usuario}.html")
 
     return {
         "id":           info["id"],
