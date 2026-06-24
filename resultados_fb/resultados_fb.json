@@ -1,0 +1,98 @@
+{
+  "resultados": [
+    {
+      "id": "1",
+      "usuario": "otis.mermil",
+      "url": "https://www.facebook.com/otis.mermil",
+      "f_inicio": "2010-01-01",
+      "f_fin": "2026-06-05",
+      "username": "otis.mermil",
+      "nombre": "Otis Mermil",
+      "followers": "",
+      "following": "",
+      "posts": "2",
+      "profile_pic": "https://scontent.ftpq2-1.fna.fbcdn.net/v/t39.30808-1/699954231_122101264629314688_7218373173041528934_n.jpg?stp=cp0_dst-jpg_tt6&cstp=mx1138x1138&ctp=s80x80&_nc_cat=102&ccb=1-7&_nc_sid=e99d92&_nc_ohc=qCcIC2iqvIUQ7kNvwHpKPHE&_nc_oc=Adpf_qNu9vTvcpuf4QIjo6gxvtZyKZYzHf2BzRhsS1dpanc-aDG7riLyl4JCceAXdp7tDXRsW6Kf3kcB1YWuONVJ&_nc_zt=24&_nc_ht=scontent.ftpq2-1.fna&_nc_gid=yJ93Lx88WnhLNFfN23tudQ&_nc_ss=7b2a8&oh=00_Af-nZtTLdhp-wLLAOKMT5emUr5IFShjWeVPgrFDeNAfrvg&oe=6A415391",
+      "links_posts": [
+        "https://www.facebook.com/otis.mermil/posts/pfbid02XpuNgzdGsBjxSLFikQrNgjhAbAFQqhcqKwWRmfZLcSCr3vyoBW6ycmtFU2aE3dPhl",
+        "https://www.facebook.com/otis.mermil/posts/pfbid0tWFSggPHp51E93dEP8zaLf7J69mtSCqwCBQDrTY6cqzCeUwz43HiT9ysHYMkofkql"
+      ],
+      "rango_fechas": {
+        "inicio": "2010-01-01",
+        "fin": "2026-06-05"
+      },
+      "posts_data": [
+        {
+          "url": "https://www.facebook.com/otis.mermil/posts/pfbid02XpuNgzdGsBjxSLFikQrNgjhAbAFQqhcqKwWRmfZLcSCr3vyoBW6ycmtFU2aE3dPhl",
+          "fecha_post": "2026-03-17T20:39:12",
+          "likes_text": "1",
+          "comments_text": "2",
+          "username_post": "Otis Mermil",
+          "fecha_text": "2026-03-17",
+          "caption": "que opinan de este corte",
+          "caption_raw": "que opinan de este corte",
+          "comments": [
+            {
+              "comment_id": "cmt_1",
+              "es_reply": false,
+              "autor": "Juan Miguel Aguilar",
+              "texto": "muy bueno",
+              "fecha_iso": "2026-06-23T14:11:15",
+              "parent_comment_id": "",
+              "author_id": "h_54dd8a1bdf"
+            },
+            {
+              "comment_id": "cmt_2",
+              "es_reply": true,
+              "autor": "Miguel Luis Ruiz Hernandez",
+              "texto": "la verdad que si",
+              "fecha_iso": "2026-06-23T14:11:15",
+              "parent_comment_id": "cmt_1",
+              "author_id": "h_ff7a99a9c1"
+            }
+          ]
+        },
+        {
+          "url": "https://www.facebook.com/otis.mermil/posts/pfbid0tWFSggPHp51E93dEP8zaLf7J69mtSCqwCBQDrTY6cqzCeUwz43HiT9ysHYMkofkql",
+          "fecha_post": "",
+          "likes_text": "",
+          "comments_text": "3",
+          "username_post": "",
+          "fecha_text": "",
+          "caption": "Juan Miguel Aguilar\npor mi colonia creo no hay nadie\n3 sem\nMe gusta\nResponder",
+          "caption_raw": "",
+          "comments": [
+            {
+              "comment_id": "cmt_1",
+              "es_reply": false,
+              "autor": "Juan Miguel Aguilar",
+              "texto": "por mi colonia creo no hay nadie",
+              "fecha_iso": "2026-06-22T23:00:52",
+              "parent_comment_id": "",
+              "author_id": "h_54dd8a1bdf"
+            },
+            {
+              "comment_id": "cmt_2",
+              "es_reply": false,
+              "autor": "Miguel Luis Ruiz Hernandez",
+              "texto": "Deberias buscar en algún grupo",
+              "fecha_iso": "2026-05-28T22:29:06",
+              "parent_comment_id": "",
+              "author_id": "h_ff7a99a9c1"
+            },
+            {
+              "comment_id": "cmt_3",
+              "es_reply": true,
+              "autor": "Marcial Becerra",
+              "texto": "por mi calle tampoco",
+              "fecha_iso": "2026-06-22T23:00:52",
+              "parent_comment_id": "cmt_2",
+              "author_id": "h_9c1052c481"
+            }
+          ],
+          "_origen_dom_suplemento": true
+        }
+      ],
+      "fecha_extraccion": "2026-06-23T23:15:30.450177"
+    }
+  ]
+}

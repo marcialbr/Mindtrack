@@ -1,0 +1,78 @@
+{
+  "resultados_anonimizados": [
+    {
+      "id": "1",
+      "perfil_id": "perfil_1",
+      "followers": "",
+      "following": "",
+      "posts": "2",
+      "rango_fechas": {
+        "inicio": "2010-01-01",
+        "fin": "2026-06-05"
+      },
+      "posts_data": [
+        {
+          "post_id": "post_1",
+          "fecha_post": "2026-03-17T20:39:12",
+          "likes_text": "1",
+          "comments_text": "2",
+          "fecha_text": "2026-03-17",
+          "caption": "que opinan de este corte",
+          "comments": [
+            {
+              "comment_id": "cmt_1",
+              "es_reply": false,
+              "autor_anonimo": "autor_A",
+              "texto": "muy bueno",
+              "fecha_iso": "2026-06-23T14:11:15",
+              "parent_comment_id": ""
+            },
+            {
+              "comment_id": "cmt_2",
+              "es_reply": true,
+              "autor_anonimo": "autor_B",
+              "texto": "la verdad que si",
+              "fecha_iso": "2026-06-23T14:11:15",
+              "parent_comment_id": "cmt_1"
+            }
+          ]
+        },
+        {
+          "post_id": "post_2",
+          "fecha_post": "",
+          "likes_text": "",
+          "comments_text": "3",
+          "fecha_text": "",
+          "caption": "Juan Miguel Aguilar\npor mi colonia creo no hay nadie\n3 sem\nMe gusta\nResponder",
+          "comments": [
+            {
+              "comment_id": "cmt_1",
+              "es_reply": false,
+              "autor_anonimo": "autor_A",
+              "texto": "por mi colonia creo no hay nadie",
+              "fecha_iso": "2026-06-22T23:00:52",
+              "parent_comment_id": ""
+            },
+            {
+              "comment_id": "cmt_2",
+              "es_reply": false,
+              "autor_anonimo": "autor_B",
+              "texto": "Deberias buscar en algún grupo",
+              "fecha_iso": "2026-05-28T22:29:06",
+              "parent_comment_id": ""
+            },
+            {
+              "comment_id": "cmt_3",
+              "es_reply": true,
+              "autor_anonimo": "autor_C",
+              "texto": "por mi calle tampoco",
+              "fecha_iso": "2026-06-22T23:00:52",
+              "parent_comment_id": "cmt_2"
+            }
+          ]
+        }
+      ],
+      "fecha_extraccion": "2026-06-23T23:15:30.450177"
+    }
+  ]
+}
