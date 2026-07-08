@@ -7,22 +7,21 @@ import os
 import re
 import hashlib
 from datetime import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 
 # ==========================================
 # ⚙️ CONFIGURACIÓN
 # ==========================================
 
-ADS_API_KEY    = "29e5eb5717d367ee58ca6914be35e3e5008d5f6b6d18530b"
-ADS_PROFILE_ID = "k1ce1hx4"
+# Perfil persistente de Chrome — aquí se guarda la sesión de FB.
+# La primera corrida requiere login manual (headless=False); las siguientes
+# reutilizan las cookies guardadas en esta carpeta, igual que hacía AdsPower.
+CHROME_PROFILE_DIR = os.path.join(os.path.expanduser("~"), ".fb_scraper_profile")
 CSV_PATH       = "formato(Sheet1).csv"
 CARPETA_OUTPUT = "resultados_fb"
 JSON_OUTPUT    = os.path.join(CARPETA_OUTPUT, "resultados_fb.json")
 JSON_ANON      = os.path.join(CARPETA_OUTPUT, "resultados_fb_anonimizado.json")
-ADS_API_URL    = "http://localhost:50325/api/v1/browser/start"
 MAX_SCROLL_RONDAS = 16
 
 # ==========================================
@@ -71,31 +70,38 @@ XMLHttpRequest.prototype.send = function(...a) {
 RESET_BUFFER_JS = "window.__fb_xhr_data = [];"
 
 # ==========================================
-# CONEXIÓN ADSPOWER
+# CONEXIÓN CHROME (perfil persistente + undetected-chromedriver)
 # ==========================================
 
-def iniciar_adspower():
-    print("Conectando con AdsPower...")
-    params  = {"user_id": ADS_PROFILE_ID}
-    headers = {"Authorization": f"Bearer {ADS_API_KEY}"}
+def iniciar_chrome(headless=False):
+    """
+    Reemplazo directo de AdsPower. Usa un perfil de Chrome persistente
+    (CHROME_PROFILE_DIR) para no tener que reloguear cada corrida, y
+    undetected-chromedriver para reducir las señales de automatización
+    que FB usa para bloquear cuentas.
+
+    Primera vez: correr con headless=False, hacer login manual en FB,
+    resolver cualquier 2FA/checkpoint, y cerrar. La sesión queda guardada
+    en CHROME_PROFILE_DIR para las siguientes corridas.
+    """
+    print("Iniciando Chrome (perfil persistente)...")
+    os.makedirs(CHROME_PROFILE_DIR, exist_ok=True)
+    opts = uc.ChromeOptions()
+    opts.add_argument(f"--user-data-dir={CHROME_PROFILE_DIR}")
+    opts.add_argument("--profile-directory=Default")
+    opts.add_argument("--lang=es-MX")
+    opts.add_argument("--window-size=1366,900")
+    if headless:
+        opts.add_argument("--headless=new")
     try:
-        r = requests.get(ADS_API_URL, params=params, headers=headers).json()
-        if r["code"] != 0:
-            print(f"❌ AdsPower: {r['msg']}")
-            return None
-        selenium_url   = r["data"]["ws"]["selenium"]
-        webdriver_path = r["data"]["webdriver"]
-        os.chmod(webdriver_path, 0o755)
-        opts = Options()
-        opts.add_experimental_option("debuggerAddress", selenium_url)
-        driver = webdriver.Chrome(service=Service(executable_path=webdriver_path), options=opts)
+        driver = uc.Chrome(options=opts, version_main=149)
         try:
             driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument",
                                    {"source": INTERCEPTOR_JS})
             print("   CDP interceptor registrado.")
         except Exception as e:
             print(f"   ⚠️ CDP no disponible: {e}")
-        print("✅ Conexión exitosa.")
+        print("✅ Chrome listo.")
         return driver
     except Exception as e:
         print(f"❌ Error: {e}")
@@ -923,6 +929,33 @@ def anonimizar_resultados(resultados):
 
 
 # ==========================================
+# VERIFICAR SESIÓN / LOGIN MANUAL
+# ==========================================
+
+def sesion_activa(driver):
+    """True si ya hay sesión de FB iniciada en este perfil."""
+    try:
+        driver.get("https://www.facebook.com/")
+        pausa(2, 3)
+        # Si NO hay sesión, FB muestra el formulario de login (input email/pass)
+        hay_form_login = driver.execute_script(
+            "return !!document.querySelector('input[name=\"email\"], form[id=\"login_form\"]');"
+        )
+        return not hay_form_login
+    except Exception:
+        return False
+
+def esperar_login_manual(driver):
+    print("\n" + "=" * 50)
+    print("🔐 No hay sesión activa de Facebook en este perfil.")
+    print("   1) Inicia sesión manualmente en la ventana de Chrome.")
+    print("   2) Resuelve cualquier checkpoint / 2FA que te pida.")
+    print("   3) Cuando ya veas tu feed, regresa aquí.")
+    print("=" * 50)
+    input(">>> Presiona ENTER cuando hayas iniciado sesión... ")
+    pausa(2, 3)
+
+# ==========================================
 # MAIN
 # ==========================================
 
@@ -934,8 +967,16 @@ def main():
         return
     print(f"📋 Usuarios: {len(usuarios)}")
 
-    driver = iniciar_adspower()
+    driver = iniciar_chrome(headless=False)
     if not driver: return
+
+    if not sesion_activa(driver):
+        esperar_login_manual(driver)
+        if not sesion_activa(driver):
+            print("❌ Seguimos sin detectar sesión activa. Revisa el login e intenta de nuevo.")
+            driver.quit()
+            return
+    print("✅ Sesión de Facebook activa.")
 
     resultados = []
     try:
