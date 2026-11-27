@@ -1,0 +1,3 @@
+Pon aqui lo que solo el agente autor debe conocer: protocolo, revista
+objetivo, criterios del comite, notas de coautores. Formatos: .md .txt
+.csv .json. Este archivo puede borrarse en cuanto haya contexto real.
